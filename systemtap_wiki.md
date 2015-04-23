@@ -72,8 +72,9 @@ In addition, you can place failpoints in parts of our code outside of the mongo:
 Code:
 
 ```
-	if ((p = calloc(number, size)) == NULL)
-		WT_RET_MSG(session, __wt_errno(), "memory allocation");
+// this line is 39
+if ((p = calloc(number, size)) == NULL)
+    WT_RET_MSG(session, __wt_errno(), "memory allocation");
 ```
 
 Fault Injection:
