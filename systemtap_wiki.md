@@ -67,7 +67,16 @@ probe process("mongod").function("_ZN5mongo5CurOp17maxTimeHasExpiredEv").return 
 Note that you have to use the mangled function name, which you can find by going through the output of `objdump --sym mongod` (Although the next release of systemtap should allow you to probe with unmangled names)
 
 #### Adding Failpoints in C code
-In addition, you can place failpoints in parts of our code outside of the mongo:: namespace, e.g. in WT code, or shared libraries. This example sets the size of the `calloc` call to 0, effectively failing the memory allocation.
+In addition, you can place failpoints in parts of our code outside of the mongo:: namespace, e.g. in WT code, or shared libraries. This example sets the size of the `calloc` call to 0, effectively failing the memory allocation. (a better way would be to change the return value of calloc to NULL, but this illustrates the use of probing by line numbers)
+
+Code:
+
+```
+	if ((p = calloc(number, size)) == NULL)
+		WT_RET_MSG(session, __wt_errno(), "memory allocation");
+```
+
+Fault Injection:
 
 ```
 probe process("/home/guo/mongo/mongod").statement("*@os_alloc.c:39") {
