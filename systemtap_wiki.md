@@ -107,20 +107,16 @@ probe timer.ms(1000) {
 Examples of Some Scripts in DTrace and Systemtap
 
 1. Print out detailed information on signals.  
-
 ```
 dtrace -n 'proc:::signal-send /pid/ { printf("%s -%d %d",execname,args[2],args[1]->pr_pid); }'
 ```  
-
 ```
 stap -e 'probe signal.send { if (pid()) printf("%s -%d %d\n",execname(), sig, sig_pid); }'
 ```  
 2. Write size distribution by executable name.  
-
 ```
 dtrace -n 'sysinfo:::writech { @dist[execname] = quantize(arg0); }'
 ```  
-
 ```
 stap -e '
 global bytes;
