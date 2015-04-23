@@ -105,6 +105,7 @@ probe timer.ms(1000) {
 
 #### Translating DTrace to Systemtap
 Examples of Some Scripts in DTrace and Systemtap
+
 1. Print out detailed information on signals.  
 
 ```
