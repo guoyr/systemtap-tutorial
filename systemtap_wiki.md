@@ -1,4 +1,4 @@
-the wiki on github, I find their syntax highlighting easier to read. https://github.com/guoyr/systemtap-tutorial/blob/master/systemtap_wiki.md
+easier to read: https://github.com/guoyr/systemtap-tutorial/blob/master/systemtap_wiki.md
 
 ### What is Systemtap
 SystemTap provides a command line interface and scripting language for instrumenting for a live running kernel and user-space applications.
@@ -19,15 +19,6 @@ Systemtap works best on CentOS or RHEL (since it's conceived by Red Hat), the in
 
 #### Building MongoDB With Debug Symbols
 There are two ways to add probe points in userspace, one is by file name and line number and the other is by function name, the former requires you to compile mongod with `--dbg=on --opt=off` to enable debug symbols.
-
-#### Building 3rd Party Libraries with debug symbols
-Third party libraries need to be built with debug symbols to enable probing by line number and fault injection, the following is instructions for building OpenSSL with debug symbols:  
-- clone the repo
-- checkout a tag corresponding to a release, because the branches don't always build
-- `./config -d shared`
-- `sudo make && sudo make install` (It should install to /usr/local/ssl)
-- `ln -s /usr/local/ssl/include /usr/include/openssl`
-- `ln -s /usr/local/ssl/lib /usr/lib64/openssl`
 
 ### Dynamic Failpoint
 You can run the following scripts with `stap -g SCRIPT_NAME.stp`. The `-g` is for "guru mode" which lets you change variable values at runtime. The normal mode is read-only.
@@ -91,6 +82,9 @@ probe process("/home/guo/mongo/mongod").statement("*@os_alloc.c:39") {
 The following code prints out the amount of time spent in `snappy_compress` every second
 
 ```
+global start_epoch
+global time_counter
+
 probe process("/home/guo/mongo/mongod").function("wt_snappy_compress") {
   start_epoch = gettimeofday_us()
 }
@@ -121,7 +115,7 @@ dtrace -n 'sysinfo:::writech { @dist[execname] = quantize(arg0); }'
 ```  
 ```
 stap -e '
-global bytes;
+global bytes
 probe syscall.write.return, syscall.writev.return, syscall.pwrite.return {
     if ($return>=0) bytes[execname()] <<< $return
 }
