@@ -23,8 +23,27 @@ There are two ways to add probe points in userspace, one is by file name and lin
 ### Dynamic Failpoint
 You can run the following scripts with `stap -g SCRIPT_NAME.stp`. The `-g` is for "guru mode" which lets you change variable values at runtime. The normal mode is read-only.
 
-#### Replacing Some MONGO_FAIL_POINT
-You can do most of what MONGO_FAIL_POINTs do with Systemtap. Here's an example of an existing `maxTimeNeverTimeOut` fail point.
+#### Example: Probing by Line Number
+This example demonstrates how to probe by line number. Note that you can place systemtap probes in parts of our codebase outside of the `mongo::` namespace, e.g. in WT code, or shared libraries. This example sets the size of the `calloc` call to 0, effectively failing the memory allocation. (a better way would be to change the return value of calloc to NULL, but this illustrates the use of probing by line numbers, which I found more useful).
+
+Code:
+
+```
+// this line is 39
+if ((p = calloc(number, size)) == NULL)
+    WT_RET_MSG(session, __wt_errno(), "memory allocation");
+```
+
+Fault Injection:
+
+```
+probe process("/home/guo/mongo/mongod").statement("*@os_alloc.c:39") {
+  $size = 0
+}
+```
+
+#### Example: Probing by Function Name
+This example shows how to probe by giving the function name. It also shows how to simulate some of the functionality of MONGO_FAIL_POINTs. Here's the current version of the code with a `maxTimeNeverTimeOut` fail point.
 
 ```
 bool CurOp::maxTimeHasExpired() {
@@ -59,27 +78,32 @@ probe process("mongod").function("_ZN5mongo5CurOp17maxTimeHasExpiredEv").return 
 
 Note that you have to use the mangled function name, which you can find by going through the output of `objdump --sym mongod` (Although the next release of systemtap should allow you to probe with unmangled names)
 
-#### Adding Failpoints in C code
-In addition, you can place failpoints in parts of our code outside of the mongo:: namespace, e.g. in WT code, or shared libraries. This example sets the size of the `calloc` call to 0, effectively failing the memory allocation. (a better way would be to change the return value of calloc to NULL, but this illustrates the use of probing by line numbers)
+#### Example: Probing by Markers
+If neither approach works great, there is another option to modify the code probe by adding a DTrace marker. Here's the example from Systemtap's website
 
-Code:
-
-```
-// this line is 39
-if ((p = calloc(number, size)) == NULL)
-    WT_RET_MSG(session, __wt_errno(), "memory allocation");
-```
-
-Fault Injection:
+In the source file:
 
 ```
-probe process("/home/guo/mongo/mongod").statement("*@os_alloc.c:39") {
-  $size = 0
-}
+#include <sys/sdt.h>
 ```
 
-### Profiling
-The following code prints out the amount of time spent in `snappy_compress` every second
+and insert the following at each location instrumentation is desired. `provider` is an arbitrary symbol identifying your application or subsystem, and `name` is an arbitrary symbol identifying your probe point. Markers can include a fixed number of arguments that are either integer or pointer values. Below is an example of a marker with four arguments:
+
+```
+DTRACE_PROBE4(provider, name, arg1, arg2, arg3, arg4)
+```
+
+Systemtap can attach to these markers using this syntax. You may use wildcards or fully spell out the provider and marker names in the DTRACE_PROBE. Within the probe handlers, arguments may be accessed with $arg1 for values, user_string($arg2) for dereferencing pointers, or pretty-printed with $$parms. The values $$name and $$provider are also available to match up the current probe pointer. Process names may also be abbreviated.
+
+```
+probe process("a.out").provider("p").mark("n") { println($arg1) }
+```
+
+
+#### Example: Basic Profiling
+The following is a simple example that prints out the amount of time spent in `snappy_compress` every second. It also shows how to use systemtap variables.
+
+A note on performance: the probes should have low overhead. When I ran the following script on an insert only workload, there's about a 5%-15% drop in performance.
 
 ```
 global start_epoch
