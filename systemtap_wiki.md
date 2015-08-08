@@ -1,4 +1,3 @@
-easier to read: https://github.com/guoyr/systemtap-tutorial/blob/master/systemtap_wiki.md
 
 ### What is Systemtap
 SystemTap provides a command line interface and scripting language for instrumenting for a live running kernel and user-space applications.
